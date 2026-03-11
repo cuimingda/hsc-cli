@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -8,24 +9,32 @@ import (
 )
 
 const (
-	groupCount      = 4
-	groupLength     = 4
-	lettersPerGroup = 2
+	defaultGroupSize = 4
+	lettersPerGroup  = 2
+	groupCount       = 4
 )
 
 var letterPool = []rune("cuimgnda")
 var digitPool = []rune("23456789")
 
 type CodeGenerator struct {
-	rng *rand.Rand
+	rng       *rand.Rand
+	groupSize int
 }
 
-func NewCodeGenerator(rng *rand.Rand) *CodeGenerator {
+func NewCodeGenerator(rng *rand.Rand, groupSize int) (*CodeGenerator, error) {
 	if rng == nil {
 		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
 
-	return &CodeGenerator{rng: rng}
+	if err := validateGroupSize(groupSize); err != nil {
+		return nil, err
+	}
+
+	return &CodeGenerator{
+		rng:       rng,
+		groupSize: groupSize,
+	}, nil
 }
 
 func (g *CodeGenerator) Generate() string {
@@ -41,12 +50,12 @@ func (g *CodeGenerator) Generate() string {
 	}
 
 	var builder strings.Builder
-	builder.Grow(groupCount*groupLength + groupCount - 1)
+	builder.Grow(groupCount*g.groupSize + groupCount - 1)
 
 	letterIndex := 0
 	for groupIndex := range groupCount {
 		letterPositions := g.letterPositions(groupIndex)
-		for charIndex := range groupLength {
+		for charIndex := range g.groupSize {
 			if letterPositions[charIndex] {
 				builder.WriteRune(letters[letterIndex])
 				letterIndex++
@@ -64,16 +73,29 @@ func (g *CodeGenerator) Generate() string {
 	return builder.String()
 }
 
-func (g *CodeGenerator) letterPositions(groupIndex int) [groupLength]bool {
-	var positions [groupLength]bool
+func validateGroupSize(groupSize int) error {
+	switch groupSize {
+	case 4, 5:
+		return nil
+	default:
+		return fmt.Errorf("invalid value %d for --group-size: allowed values are 4 or 5", groupSize)
+	}
+}
+
+func (g *CodeGenerator) letterPositions(groupIndex int) []bool {
+	positions := make([]bool, g.groupSize)
 
 	if groupIndex == 0 {
 		positions[0] = true
-		positions[1+g.rng.Intn(groupLength-1)] = true
+		positions[1+g.rng.Intn(g.groupSize-1)] = true
 		return positions
 	}
 
-	indexes := [groupLength]int{0, 1, 2, 3}
+	indexes := make([]int, g.groupSize)
+	for i := range indexes {
+		indexes[i] = i
+	}
+
 	g.rng.Shuffle(len(indexes), func(i, j int) {
 		indexes[i], indexes[j] = indexes[j], indexes[i]
 	})

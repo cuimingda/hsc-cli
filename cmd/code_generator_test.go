@@ -7,19 +7,34 @@ import (
 	"unicode"
 )
 
-func TestCodeGeneratorGenerateProducesValidCode(t *testing.T) {
-	generator := NewCodeGenerator(rand.New(rand.NewSource(1)))
+func TestCodeGeneratorGenerateProducesValidCodeWithDefaultGroupSize(t *testing.T) {
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(1)), 4)
+	if err != nil {
+		t.Fatalf("create generator: %v", err)
+	}
 
 	for range 256 {
-		assertValidCode(t, generator.Generate())
+		assertValidCode(t, generator.Generate(), 4)
 	}
 }
 
-func assertValidCode(t *testing.T, code string) {
+func TestCodeGeneratorGenerateProducesValidCodeWithGroupSizeFive(t *testing.T) {
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(2)), 5)
+	if err != nil {
+		t.Fatalf("create generator: %v", err)
+	}
+
+	for range 256 {
+		assertValidCode(t, generator.Generate(), 5)
+	}
+}
+
+func assertValidCode(t *testing.T, code string, groupSize int) {
 	t.Helper()
 
-	if len(code) != 19 {
-		t.Fatalf("expected code length 19, got %d: %q", len(code), code)
+	expectedLength := groupCount*groupSize + groupCount - 1
+	if len(code) != expectedLength {
+		t.Fatalf("expected code length %d, got %d: %q", expectedLength, len(code), code)
 	}
 
 	parts := strings.Split(code, "-")
@@ -41,8 +56,8 @@ func assertValidCode(t *testing.T, code string) {
 	seenLetters := make(map[rune]int, len(allowedLetters))
 
 	for _, part := range parts {
-		if len(part) != 4 {
-			t.Fatalf("expected group length 4, got %d in %q", len(part), code)
+		if len(part) != groupSize {
+			t.Fatalf("expected group length %d, got %d in %q", groupSize, len(part), code)
 		}
 
 		lettersInGroup := 0
@@ -72,8 +87,8 @@ func assertValidCode(t *testing.T, code string) {
 			}
 		}
 
-		if lettersInGroup != 2 || digitsInGroup != 2 {
-			t.Fatalf("expected each group to contain 2 letters and 2 digits: %q", code)
+		if lettersInGroup != 2 || digitsInGroup != groupSize-2 {
+			t.Fatalf("expected each group to contain 2 letters and %d digits: %q", groupSize-2, code)
 		}
 	}
 
