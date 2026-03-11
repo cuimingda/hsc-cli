@@ -19,22 +19,25 @@ func newRootCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "hsc",
-		Short: "A brief description of your application",
-		Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+		Short: "Generate hyphen-separated codes with configurable letters, digits, and group size",
+		Long: `Hyphen-separated Code Generator generates hyphen-separated codes with configurable
+letters, digits, and group size.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Each group always contains exactly 2 letters and the remaining characters are digits.
+The first character of the first group is always a letter, and each generated letter
+is used at most once per code.`,
+		Example: `  hsc
+  hsc --group-size 5
+  hsc --letters AbCdEfGhIj
+  hsc --digits 0123456789`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRootCommand(cmd, groupSize, letters, digits)
 		},
 	}
 
-	cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	cmd.Flags().StringVar(&digits, "digits", defaultDigits, "candidate digits used for generation (digits only; no duplicates; must contain 1 to 10 digits)")
-	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "number of characters in each group (allowed values: 4 or 5)")
-	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters used for generation (letters only; duplicates are removed case-insensitively; need at least 8 unique letters)")
+	cmd.Flags().StringVar(&digits, "digits", defaultDigits, "candidate digits for generated code (digits only, no duplicates, length 1-10)")
+	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "characters per group (allowed values: 4 or 5)")
+	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters for generated code (letters only, case-insensitive deduplication, at least 8 unique letters)")
 
 	return cmd
 }

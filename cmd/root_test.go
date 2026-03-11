@@ -187,6 +187,14 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 	}
 
 	helpText := stdout.String()
+	if !strings.Contains(helpText, "Hyphen-separated Code Generator") {
+		t.Fatalf("expected help to mention the tool name, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "generates hyphen-separated codes with configurable") {
+		t.Fatalf("expected help to mention the updated summary, got %q", helpText)
+	}
+
 	if !strings.Contains(helpText, "--group-size") {
 		t.Fatalf("expected help to mention --group-size, got %q", helpText)
 	}
@@ -199,7 +207,7 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 		t.Fatalf("expected help to mention --letters, got %q", helpText)
 	}
 
-	if !strings.Contains(helpText, "need at least 8 unique letters") {
+	if !strings.Contains(helpText, "at least 8 unique letters") {
 		t.Fatalf("expected help to mention letters constraints, got %q", helpText)
 	}
 
@@ -207,7 +215,15 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 		t.Fatalf("expected help to mention --digits, got %q", helpText)
 	}
 
-	if !strings.Contains(helpText, "must contain 1 to 10 digits") {
+	if !strings.Contains(helpText, "length 1-10") {
 		t.Fatalf("expected help to mention digit constraints, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "Examples:") {
+		t.Fatalf("expected help to include examples, got %q", helpText)
+	}
+
+	if strings.Contains(helpText, "--toggle") {
+		t.Fatalf("did not expect help to mention --toggle, got %q", helpText)
 	}
 }
