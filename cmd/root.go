@@ -13,6 +13,7 @@ import (
 var rootCmd = newRootCmd()
 
 func newRootCmd() *cobra.Command {
+	digits := defaultDigits
 	groupSize := defaultGroupSize
 	letters := defaultLetters
 
@@ -26,11 +27,12 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRootCommand(cmd, groupSize, letters)
+			return runRootCommand(cmd, groupSize, letters, digits)
 		},
 	}
 
 	cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	cmd.Flags().StringVar(&digits, "digits", defaultDigits, "candidate digits used for generation (digits only; no duplicates; must contain 1 to 10 digits)")
 	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "number of characters in each group (allowed values: 4 or 5)")
 	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters used for generation (letters only; duplicates are removed case-insensitively; need at least 8 unique letters)")
 
@@ -46,8 +48,8 @@ func Execute() {
 	}
 }
 
-func runRootCommand(cmd *cobra.Command, groupSize int, letters string) error {
-	generator, err := NewCodeGenerator(nil, groupSize, letters)
+func runRootCommand(cmd *cobra.Command, groupSize int, letters string, digits string) error {
+	generator, err := NewCodeGenerator(nil, groupSize, letters, digits)
 	if err != nil {
 		return err
 	}

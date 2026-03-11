@@ -6,25 +6,28 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 const (
 	defaultGroupSize = 4
+	defaultDigits    = "23456789"
 	defaultLetters   = "cuimngda"
 	lettersPerGroup  = 2
 	groupCount       = 4
+	maxDigits        = 10
+	minDigits        = 1
 	requiredLetters  = groupCount * lettersPerGroup
 )
 
-var digitPool = []rune("23456789")
-
 type CodeGenerator struct {
 	rng       *rand.Rand
+	digits    []rune
 	groupSize int
 	letters   []rune
 }
 
-func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string) (*CodeGenerator, error) {
+func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string, digits string) (*CodeGenerator, error) {
 	if rng == nil {
 		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
@@ -38,8 +41,14 @@ func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string) (*CodeGener
 		return nil, err
 	}
 
+	normalizedDigits, err := normalizeDigits(digits)
+	if err != nil {
+		return nil, err
+	}
+
 	return &CodeGenerator{
 		rng:       rng,
+		digits:    normalizedDigits,
 		groupSize: groupSize,
 		letters:   normalizedLetters,
 	}, nil
@@ -70,7 +79,7 @@ func (g *CodeGenerator) Generate() string {
 				continue
 			}
 
-			builder.WriteRune(digitPool[g.rng.Intn(len(digitPool))])
+			builder.WriteRune(g.digits[g.rng.Intn(len(g.digits))])
 		}
 
 		if groupIndex < groupCount-1 {
@@ -114,6 +123,36 @@ func normalizeLetters(letters string) ([]rune, error) {
 			letters,
 			requiredLetters,
 		)
+	}
+
+	return normalized, nil
+}
+
+func normalizeDigits(digits string) ([]rune, error) {
+	digitCount := utf8.RuneCountInString(digits)
+	if digitCount < minDigits || digitCount > maxDigits {
+		return nil, fmt.Errorf(
+			"invalid value %q for --digits: must contain %d to %d digits",
+			digits,
+			minDigits,
+			maxDigits,
+		)
+	}
+
+	normalized := make([]rune, 0, digitCount)
+	seen := make(map[rune]struct{}, digitCount)
+
+	for _, digit := range digits {
+		if digit < '0' || digit > '9' {
+			return nil, fmt.Errorf("invalid value %q for --digits: only digits 0-9 are allowed", digits)
+		}
+
+		if _, ok := seen[digit]; ok {
+			return nil, fmt.Errorf("invalid value %q for --digits: digits must not repeat", digits)
+		}
+
+		seen[digit] = struct{}{}
+		normalized = append(normalized, digit)
 	}
 
 	return normalized, nil

@@ -10,35 +10,35 @@ import (
 )
 
 func TestCodeGeneratorGenerateProducesValidCodeWithDefaultGroupSize(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(1)), 4, defaultLetters)
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(1)), 4, defaultLetters, defaultDigits)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
 
 	for range 256 {
-		assertValidCode(t, generator.Generate(), 4, defaultLetters)
+		assertValidCode(t, generator.Generate(), 4, defaultLetters, defaultDigits)
 	}
 }
 
 func TestCodeGeneratorGenerateProducesValidCodeWithGroupSizeFive(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(2)), 5, defaultLetters)
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(2)), 5, defaultLetters, defaultDigits)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
 
 	for range 256 {
-		assertValidCode(t, generator.Generate(), 5, defaultLetters)
+		assertValidCode(t, generator.Generate(), 5, defaultLetters, defaultDigits)
 	}
 }
 
 func TestCodeGeneratorGenerateProducesValidCodeWithCustomLetters(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(3)), 4, "AbCdEfGhIj")
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(3)), 4, "AbCdEfGhIj", defaultDigits)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
 
 	for range 256 {
-		assertValidCode(t, generator.Generate(), 4, "AbCdEfGhIj")
+		assertValidCode(t, generator.Generate(), 4, "AbCdEfGhIj", defaultDigits)
 	}
 }
 
@@ -55,7 +55,7 @@ func TestNormalizeLettersRemovesDuplicatesCaseInsensitively(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsLettersWithNonLetterCharacters(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(4)), 4, "abcd1234")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(4)), 4, "abcd1234", defaultDigits)
 	if err == nil {
 		t.Fatal("expected error for letters containing non-letters")
 	}
@@ -66,7 +66,7 @@ func TestNewCodeGeneratorRejectsLettersWithNonLetterCharacters(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsTooFewUniqueLettersAfterDeduplication(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(5)), 4, "AaBbCcDd")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(5)), 4, "AaBbCcDd", defaultDigits)
 	if err == nil {
 		t.Fatal("expected error for too few unique letters")
 	}
@@ -76,12 +76,84 @@ func TestNewCodeGeneratorRejectsTooFewUniqueLettersAfterDeduplication(t *testing
 	}
 }
 
-func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters string) {
+func TestCodeGeneratorGenerateProducesValidCodeWithCustomDigits(t *testing.T) {
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(6)), 4, defaultLetters, "01")
+	if err != nil {
+		t.Fatalf("create generator: %v", err)
+	}
+
+	for range 256 {
+		assertValidCode(t, generator.Generate(), 4, defaultLetters, "01")
+	}
+}
+
+func TestNormalizeDigitsAcceptsSingleDigit(t *testing.T) {
+	got, err := normalizeDigits("0")
+	if err != nil {
+		t.Fatalf("normalize digits: %v", err)
+	}
+
+	want := []rune("0")
+	if !slices.Equal(got, want) {
+		t.Fatalf("expected %q, got %q", string(want), string(got))
+	}
+}
+
+func TestNewCodeGeneratorRejectsDigitsWithNonDigits(t *testing.T) {
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(7)), 4, defaultLetters, "12a3")
+	if err == nil {
+		t.Fatal("expected error for digits containing non-digits")
+	}
+
+	if !strings.Contains(err.Error(), "only digits 0-9 are allowed") {
+		t.Fatalf("expected digit character validation error, got %v", err)
+	}
+}
+
+func TestNewCodeGeneratorRejectsRepeatedDigits(t *testing.T) {
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(8)), 4, defaultLetters, "2234")
+	if err == nil {
+		t.Fatal("expected error for repeated digits")
+	}
+
+	if !strings.Contains(err.Error(), "digits must not repeat") {
+		t.Fatalf("expected repeated digit validation error, got %v", err)
+	}
+}
+
+func TestNewCodeGeneratorRejectsEmptyDigits(t *testing.T) {
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(9)), 4, defaultLetters, "")
+	if err == nil {
+		t.Fatal("expected error for empty digits")
+	}
+
+	if !strings.Contains(err.Error(), "must contain 1 to 10 digits") {
+		t.Fatalf("expected digit length validation error, got %v", err)
+	}
+}
+
+func TestNewCodeGeneratorRejectsTooManyDigits(t *testing.T) {
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(10)), 4, defaultLetters, "01234567890")
+	if err == nil {
+		t.Fatal("expected error for too many digits")
+	}
+
+	if !strings.Contains(err.Error(), "must contain 1 to 10 digits") {
+		t.Fatalf("expected digit length validation error, got %v", err)
+	}
+}
+
+func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters string, allowedDigits string) {
 	t.Helper()
 
 	normalizedLetters, err := normalizeLetters(allowedLetters)
 	if err != nil {
 		t.Fatalf("normalize allowed letters: %v", err)
+	}
+
+	normalizedDigits, err := normalizeDigits(allowedDigits)
+	if err != nil {
+		t.Fatalf("normalize allowed digits: %v", err)
 	}
 
 	expectedLength := groupCount*groupSize + groupCount - 1
@@ -97,6 +169,11 @@ func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters st
 	allowedLetterSet := make(map[rune]struct{}, len(normalizedLetters))
 	for _, letter := range normalizedLetters {
 		allowedLetterSet[letter] = struct{}{}
+	}
+
+	allowedDigitSet := make(map[rune]struct{}, len(normalizedDigits))
+	for _, digit := range normalizedDigits {
+		allowedDigitSet[digit] = struct{}{}
 	}
 
 	seenLetters := make(map[rune]int, requiredLetters)
@@ -123,8 +200,8 @@ func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters st
 				}
 
 				lettersInGroup++
-			case unicode.IsDigit(r):
-				if r < '2' || r > '9' {
+			case isASCIIDigit(r):
+				if _, ok := allowedDigitSet[r]; !ok {
 					t.Fatalf("unexpected digit %q in %q", r, code)
 				}
 				digitsInGroup++
@@ -146,4 +223,8 @@ func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters st
 	if len(seenLetters) != requiredLetters {
 		t.Fatalf("expected %d unique letters to appear exactly once: %q", requiredLetters, code)
 	}
+}
+
+func isASCIIDigit(r rune) bool {
+	return r >= '0' && r <= '9'
 }

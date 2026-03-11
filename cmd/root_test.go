@@ -18,7 +18,7 @@ func TestRootCommandOutputsGeneratedCode(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters)
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters, defaultDigits)
 }
 
 func TestRootCommandSupportsGroupSizeFive(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRootCommandSupportsGroupSizeFive(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	assertValidCode(t, strings.TrimSpace(stdout.String()), 5, defaultLetters)
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 5, defaultLetters, defaultDigits)
 }
 
 func TestRootCommandSupportsCustomLetters(t *testing.T) {
@@ -48,7 +48,22 @@ func TestRootCommandSupportsCustomLetters(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, "AbCdEfGhIj")
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, "AbCdEfGhIj", defaultDigits)
+}
+
+func TestRootCommandSupportsCustomDigits(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+	cmd.SetArgs([]string{"--digits", "01"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute root command: %v", err)
+	}
+
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters, "01")
 }
 
 func TestRootCommandRejectsInvalidGroupSize(t *testing.T) {
@@ -105,6 +120,60 @@ func TestRootCommandRejectsLettersThatAreTooShortAfterDeduplication(t *testing.T
 	}
 }
 
+func TestRootCommandRejectsDigitsWithNonDigits(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--digits", "12a3"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for digits containing non-digits")
+	}
+
+	if !strings.Contains(err.Error(), "only digits 0-9 are allowed") {
+		t.Fatalf("expected digit character validation error, got %v", err)
+	}
+}
+
+func TestRootCommandRejectsRepeatedDigits(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--digits", "2234"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for repeated digits")
+	}
+
+	if !strings.Contains(err.Error(), "digits must not repeat") {
+		t.Fatalf("expected repeated digit validation error, got %v", err)
+	}
+}
+
+func TestRootCommandRejectsEmptyDigits(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--digits", ""})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for empty digits")
+	}
+
+	if !strings.Contains(err.Error(), "must contain 1 to 10 digits") {
+		t.Fatalf("expected digit length validation error, got %v", err)
+	}
+}
+
 func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd := newRootCmd()
@@ -132,5 +201,13 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 
 	if !strings.Contains(helpText, "need at least 8 unique letters") {
 		t.Fatalf("expected help to mention letters constraints, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "--digits") {
+		t.Fatalf("expected help to mention --digits, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "must contain 1 to 10 digits") {
+		t.Fatalf("expected help to mention digit constraints, got %q", helpText)
 	}
 }
