@@ -16,6 +16,7 @@ func newRootCmd() *cobra.Command {
 	digits := defaultDigits
 	groupSize := defaultGroupSize
 	letters := defaultLetters
+	showVersion := false
 
 	cmd := &cobra.Command{
 		Use:   "hsc",
@@ -27,10 +28,16 @@ Each group always contains exactly 2 letters and the remaining characters are di
 The first character of the first group is always a letter, and each generated letter
 is used at most once per code.`,
 		Example: `  hsc
+  hsc --version
   hsc --group-size 5
   hsc --letters AbCdEfGhIj
   hsc --digits 0123456789`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if showVersion {
+				_, err := fmt.Fprintln(cmd.OutOrStdout(), currentVersion)
+				return err
+			}
+
 			return runRootCommand(cmd, groupSize, letters, digits)
 		},
 	}
@@ -38,6 +45,7 @@ is used at most once per code.`,
 	cmd.Flags().StringVar(&digits, "digits", defaultDigits, "candidate digits for generated code (digits only, no duplicates, length 1-10)")
 	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "characters per group (allowed values: 4 or 5)")
 	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters for generated code (letters only, case-insensitive deduplication, at least 8 unique letters)")
+	cmd.Flags().BoolVar(&showVersion, "version", false, "print the current hsc version")
 
 	return cmd
 }

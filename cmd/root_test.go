@@ -66,6 +66,23 @@ func TestRootCommandSupportsCustomDigits(t *testing.T) {
 	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters, "01")
 }
 
+func TestRootCommandOutputsVersion(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+	cmd.SetArgs([]string{"--version"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute root command: %v", err)
+	}
+
+	if strings.TrimSpace(stdout.String()) != currentVersion {
+		t.Fatalf("expected version %q, got %q", currentVersion, strings.TrimSpace(stdout.String()))
+	}
+}
+
 func TestRootCommandRejectsInvalidGroupSize(t *testing.T) {
 	var stderr bytes.Buffer
 	cmd := newRootCmd()
@@ -217,6 +234,10 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 
 	if !strings.Contains(helpText, "length 1-10") {
 		t.Fatalf("expected help to mention digit constraints, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "--version") {
+		t.Fatalf("expected help to mention --version, got %q", helpText)
 	}
 
 	if !strings.Contains(helpText, "Examples:") {

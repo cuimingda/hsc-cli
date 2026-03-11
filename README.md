@@ -16,6 +16,12 @@ hsc
 
 The command generates a code with 4 groups separated by `-`.
 
+Show the current version:
+
+```bash
+hsc --version
+```
+
 ## Rules
 
 - The code always has 4 groups.
@@ -33,6 +39,7 @@ The command generates a code with 4 groups separated by `-`.
       --group-size int   characters per group (allowed values: 4 or 5) (default 4)
       --letters string   candidate letters for generated code (letters only, case-insensitive deduplication, at least 8 unique letters) (default "cuimngda")
   -h, --help             help for hsc
+      --version          print the current hsc version
 ```
 
 ## Examples
@@ -47,6 +54,12 @@ Generate 5 characters per group:
 
 ```bash
 hsc --group-size 5
+```
+
+Show the current version:
+
+```bash
+hsc --version
 ```
 
 Use a custom letter pool:
