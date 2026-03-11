@@ -18,7 +18,7 @@ func TestRootCommandOutputsGeneratedCode(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	assertValidCode(t, strings.TrimSpace(stdout.String()), 4)
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters)
 }
 
 func TestRootCommandSupportsGroupSizeFive(t *testing.T) {
@@ -33,7 +33,22 @@ func TestRootCommandSupportsGroupSizeFive(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	assertValidCode(t, strings.TrimSpace(stdout.String()), 5)
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 5, defaultLetters)
+}
+
+func TestRootCommandSupportsCustomLetters(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+	cmd.SetArgs([]string{"--letters", "AbCdEfGhIj"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute root command: %v", err)
+	}
+
+	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, "AbCdEfGhIj")
 }
 
 func TestRootCommandRejectsInvalidGroupSize(t *testing.T) {
@@ -54,7 +69,43 @@ func TestRootCommandRejectsInvalidGroupSize(t *testing.T) {
 	}
 }
 
-func TestRootCommandHelpMentionsGroupSizeChoices(t *testing.T) {
+func TestRootCommandRejectsLettersWithNonLetters(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--letters", "abcd1234"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for letters containing non-letters")
+	}
+
+	if !strings.Contains(err.Error(), "only letters are allowed") {
+		t.Fatalf("expected letters validation error, got %v", err)
+	}
+}
+
+func TestRootCommandRejectsLettersThatAreTooShortAfterDeduplication(t *testing.T) {
+	var stderr bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--letters", "AaBbCcDd"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for too few unique letters")
+	}
+
+	if !strings.Contains(err.Error(), "need at least 8 unique letters") {
+		t.Fatalf("expected unique letters validation error, got %v", err)
+	}
+}
+
+func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd := newRootCmd()
 
@@ -73,5 +124,13 @@ func TestRootCommandHelpMentionsGroupSizeChoices(t *testing.T) {
 
 	if !strings.Contains(helpText, "allowed values: 4 or 5") {
 		t.Fatalf("expected help to mention allowed group sizes, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "--letters") {
+		t.Fatalf("expected help to mention --letters, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "need at least 8 unique letters") {
+		t.Fatalf("expected help to mention letters constraints, got %q", helpText)
 	}
 }

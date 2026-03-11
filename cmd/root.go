@@ -14,6 +14,7 @@ var rootCmd = newRootCmd()
 
 func newRootCmd() *cobra.Command {
 	groupSize := defaultGroupSize
+	letters := defaultLetters
 
 	cmd := &cobra.Command{
 		Use:   "hsc",
@@ -25,12 +26,13 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRootCommand(cmd, groupSize)
+			return runRootCommand(cmd, groupSize, letters)
 		},
 	}
 
 	cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "number of characters in each group (allowed values: 4 or 5)")
+	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters used for generation (letters only; duplicates are removed case-insensitively; need at least 8 unique letters)")
 
 	return cmd
 }
@@ -44,8 +46,8 @@ func Execute() {
 	}
 }
 
-func runRootCommand(cmd *cobra.Command, groupSize int) error {
-	generator, err := NewCodeGenerator(nil, groupSize)
+func runRootCommand(cmd *cobra.Command, groupSize int, letters string) error {
+	generator, err := NewCodeGenerator(nil, groupSize, letters)
 	if err != nil {
 		return err
 	}

@@ -10,19 +10,21 @@ import (
 
 const (
 	defaultGroupSize = 4
+	defaultLetters   = "cuimngda"
 	lettersPerGroup  = 2
 	groupCount       = 4
+	requiredLetters  = groupCount * lettersPerGroup
 )
 
-var letterPool = []rune("cuimgnda")
 var digitPool = []rune("23456789")
 
 type CodeGenerator struct {
 	rng       *rand.Rand
 	groupSize int
+	letters   []rune
 }
 
-func NewCodeGenerator(rng *rand.Rand, groupSize int) (*CodeGenerator, error) {
+func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string) (*CodeGenerator, error) {
 	if rng == nil {
 		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
@@ -31,14 +33,20 @@ func NewCodeGenerator(rng *rand.Rand, groupSize int) (*CodeGenerator, error) {
 		return nil, err
 	}
 
+	normalizedLetters, err := normalizeLetters(letters)
+	if err != nil {
+		return nil, err
+	}
+
 	return &CodeGenerator{
 		rng:       rng,
 		groupSize: groupSize,
+		letters:   normalizedLetters,
 	}, nil
 }
 
 func (g *CodeGenerator) Generate() string {
-	letters := append([]rune(nil), letterPool...)
+	letters := append([]rune(nil), g.letters...)
 	g.rng.Shuffle(len(letters), func(i, j int) {
 		letters[i], letters[j] = letters[j], letters[i]
 	})
@@ -80,6 +88,35 @@ func validateGroupSize(groupSize int) error {
 	default:
 		return fmt.Errorf("invalid value %d for --group-size: allowed values are 4 or 5", groupSize)
 	}
+}
+
+func normalizeLetters(letters string) ([]rune, error) {
+	normalized := make([]rune, 0, len(letters))
+	seen := make(map[rune]struct{}, len(letters))
+
+	for _, letter := range letters {
+		if !unicode.IsLetter(letter) {
+			return nil, fmt.Errorf("invalid value %q for --letters: only letters are allowed", letters)
+		}
+
+		lower := unicode.ToLower(letter)
+		if _, ok := seen[lower]; ok {
+			continue
+		}
+
+		seen[lower] = struct{}{}
+		normalized = append(normalized, lower)
+	}
+
+	if len(normalized) < requiredLetters {
+		return nil, fmt.Errorf(
+			"invalid value %q for --letters: need at least %d unique letters after case-insensitive deduplication",
+			letters,
+			requiredLetters,
+		)
+	}
+
+	return normalized, nil
 }
 
 func (g *CodeGenerator) letterPositions(groupIndex int) []bool {
