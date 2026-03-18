@@ -10,7 +10,7 @@ import (
 )
 
 func TestCodeGeneratorGenerateProducesValidCodeWithDefaultGroupSize(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(1)), 4, defaultLetters, defaultDigits)
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(1)), 4, defaultLetters, defaultDigits, defaultSeparator)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestCodeGeneratorGenerateProducesValidCodeWithDefaultGroupSize(t *testing.T
 }
 
 func TestCodeGeneratorGenerateProducesValidCodeWithGroupSizeFive(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(2)), 5, defaultLetters, defaultDigits)
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(2)), 5, defaultLetters, defaultDigits, defaultSeparator)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
@@ -32,13 +32,24 @@ func TestCodeGeneratorGenerateProducesValidCodeWithGroupSizeFive(t *testing.T) {
 }
 
 func TestCodeGeneratorGenerateProducesValidCodeWithCustomLetters(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(3)), 4, "AbCdEfGhIj", defaultDigits)
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(3)), 4, "AbCdEfGhIj", defaultDigits, defaultSeparator)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
 
 	for range 256 {
 		assertValidCode(t, generator.Generate(), 4, "AbCdEfGhIj", defaultDigits)
+	}
+}
+
+func TestCodeGeneratorGenerateProducesValidCodeWithUnderscoreSeparator(t *testing.T) {
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(4)), 4, defaultLetters, defaultDigits, underscoreSeparator)
+	if err != nil {
+		t.Fatalf("create generator: %v", err)
+	}
+
+	for range 256 {
+		assertValidCodeWithSeparator(t, generator.Generate(), 4, defaultLetters, defaultDigits, underscoreSeparator)
 	}
 }
 
@@ -55,7 +66,7 @@ func TestNormalizeLettersRemovesDuplicatesCaseInsensitively(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsLettersWithNonLetterCharacters(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(4)), 4, "abcd1234", defaultDigits)
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(5)), 4, "abcd1234", defaultDigits, defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for letters containing non-letters")
 	}
@@ -66,7 +77,7 @@ func TestNewCodeGeneratorRejectsLettersWithNonLetterCharacters(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsTooFewUniqueLettersAfterDeduplication(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(5)), 4, "AaBbCcDd", defaultDigits)
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(6)), 4, "AaBbCcDd", defaultDigits, defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for too few unique letters")
 	}
@@ -77,7 +88,7 @@ func TestNewCodeGeneratorRejectsTooFewUniqueLettersAfterDeduplication(t *testing
 }
 
 func TestCodeGeneratorGenerateProducesValidCodeWithCustomDigits(t *testing.T) {
-	generator, err := NewCodeGenerator(rand.New(rand.NewSource(6)), 4, defaultLetters, "01")
+	generator, err := NewCodeGenerator(rand.New(rand.NewSource(7)), 4, defaultLetters, "01", defaultSeparator)
 	if err != nil {
 		t.Fatalf("create generator: %v", err)
 	}
@@ -100,7 +111,7 @@ func TestNormalizeDigitsAcceptsSingleDigit(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsDigitsWithNonDigits(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(7)), 4, defaultLetters, "12a3")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(8)), 4, defaultLetters, "12a3", defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for digits containing non-digits")
 	}
@@ -111,7 +122,7 @@ func TestNewCodeGeneratorRejectsDigitsWithNonDigits(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsRepeatedDigits(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(8)), 4, defaultLetters, "2234")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(9)), 4, defaultLetters, "2234", defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for repeated digits")
 	}
@@ -122,7 +133,7 @@ func TestNewCodeGeneratorRejectsRepeatedDigits(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsEmptyDigits(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(9)), 4, defaultLetters, "")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(10)), 4, defaultLetters, "", defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for empty digits")
 	}
@@ -133,7 +144,7 @@ func TestNewCodeGeneratorRejectsEmptyDigits(t *testing.T) {
 }
 
 func TestNewCodeGeneratorRejectsTooManyDigits(t *testing.T) {
-	_, err := NewCodeGenerator(rand.New(rand.NewSource(10)), 4, defaultLetters, "01234567890")
+	_, err := NewCodeGenerator(rand.New(rand.NewSource(11)), 4, defaultLetters, "01234567890", defaultSeparator)
 	if err == nil {
 		t.Fatal("expected error for too many digits")
 	}
@@ -144,6 +155,12 @@ func TestNewCodeGeneratorRejectsTooManyDigits(t *testing.T) {
 }
 
 func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters string, allowedDigits string) {
+	t.Helper()
+
+	assertValidCodeWithSeparator(t, code, groupSize, allowedLetters, allowedDigits, defaultSeparator)
+}
+
+func assertValidCodeWithSeparator(t *testing.T, code string, groupSize int, allowedLetters string, allowedDigits string, separator rune) {
 	t.Helper()
 
 	normalizedLetters, err := normalizeLetters(allowedLetters)
@@ -161,7 +178,7 @@ func assertValidCode(t *testing.T, code string, groupSize int, allowedLetters st
 		t.Fatalf("expected code length %d, got %d: %q", expectedLength, utf8.RuneCountInString(code), code)
 	}
 
-	parts := strings.Split(code, "-")
+	parts := strings.Split(code, string(separator))
 	if len(parts) != 4 {
 		t.Fatalf("expected 4 groups, got %d: %q", len(parts), code)
 	}

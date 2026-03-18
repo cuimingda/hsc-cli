@@ -17,34 +17,38 @@ func newRootCmd() *cobra.Command {
 	groupSize := defaultGroupSize
 	letters := defaultLetters
 	showVersion := false
+	useUnderscore := false
 
 	cmd := &cobra.Command{
 		Use:   "hsc",
-		Short: "Generate hyphen-separated codes with configurable letters, digits, and group size",
-		Long: `Hyphen-separated Code Generator generates hyphen-separated codes with configurable
-letters, digits, and group size.
+		Short: "Generate grouped codes with configurable letters, digits, and group size",
+		Long: `Code Generator generates grouped codes with configurable
+letters, digits, group size, and separator.
 
 Each group always contains exactly 2 letters and the remaining characters are digits.
 The first character of the first group is always a letter, and each generated letter
-is used at most once per code.`,
+is used at most once per code. Codes use "-" between groups by default, and "_"
+when --underscore is set.`,
 		Example: `  hsc
   hsc --version
   hsc --group-size 5
   hsc --letters AbCdEfGhIj
-  hsc --digits 0123456789`,
+  hsc --digits 0123456789
+  hsc --underscore`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if showVersion {
 				_, err := fmt.Fprintln(cmd.OutOrStdout(), currentVersion)
 				return err
 			}
 
-			return runRootCommand(cmd, groupSize, letters, digits)
+			return runRootCommand(cmd, groupSize, letters, digits, useUnderscore)
 		},
 	}
 
 	cmd.Flags().StringVar(&digits, "digits", defaultDigits, "candidate digits for generated code (digits only, no duplicates, length 1-10)")
 	cmd.Flags().IntVar(&groupSize, "group-size", defaultGroupSize, "characters per group (allowed values: 4 or 5)")
 	cmd.Flags().StringVar(&letters, "letters", defaultLetters, "candidate letters for generated code (letters only, case-insensitive deduplication, at least 8 unique letters)")
+	cmd.Flags().BoolVar(&useUnderscore, "underscore", false, "use _ instead of - as the group separator")
 	cmd.Flags().BoolVar(&showVersion, "version", false, "print the current hsc version")
 
 	return cmd
@@ -59,8 +63,13 @@ func Execute() {
 	}
 }
 
-func runRootCommand(cmd *cobra.Command, groupSize int, letters string, digits string) error {
-	generator, err := NewCodeGenerator(nil, groupSize, letters, digits)
+func runRootCommand(cmd *cobra.Command, groupSize int, letters string, digits string, useUnderscore bool) error {
+	separator := defaultSeparator
+	if useUnderscore {
+		separator = underscoreSeparator
+	}
+
+	generator, err := NewCodeGenerator(nil, groupSize, letters, digits, separator)
 	if err != nil {
 		return err
 	}

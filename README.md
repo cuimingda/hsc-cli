@@ -1,6 +1,6 @@
-# Hyphen-separated Code Generator
+# Code Generator
 
-`hsc` is a small CLI for generating random hyphen-separated codes.
+`hsc` is a small CLI for generating random grouped codes.
 
 ## Install
 
@@ -14,7 +14,7 @@ go install github.com/cuimingda/hsc-cli/cmd/hsc@latest
 hsc
 ```
 
-The command generates a code with 4 groups separated by `-`.
+The command generates a code with 4 groups separated by `-` by default.
 
 Show the current version:
 
@@ -31,6 +31,7 @@ hsc --version
 - The first character of the first group is always a letter.
 - Each letter can appear at most once in a generated code.
 - Letter case is randomized for generated output.
+- `--underscore` switches the group separator from `-` to `_`.
 
 ## Flags
 
@@ -38,6 +39,7 @@ hsc --version
       --digits string    candidate digits for generated code (digits only, no duplicates, length 1-10) (default "23456789")
       --group-size int   characters per group (allowed values: 4 or 5) (default 4)
       --letters string   candidate letters for generated code (letters only, case-insensitive deduplication, at least 8 unique letters) (default "cuimngda")
+      --underscore       use _ instead of - as the group separator
   -h, --help             help for hsc
       --version          print the current hsc version
 ```
@@ -72,6 +74,12 @@ Use a custom digit pool:
 
 ```bash
 hsc --digits 0123456789
+```
+
+Use `_` as the group separator:
+
+```bash
+hsc --underscore
 ```
 
 Use custom letters, digits, and group size together:

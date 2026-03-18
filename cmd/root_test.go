@@ -66,6 +66,21 @@ func TestRootCommandSupportsCustomDigits(t *testing.T) {
 	assertValidCode(t, strings.TrimSpace(stdout.String()), 4, defaultLetters, "01")
 }
 
+func TestRootCommandSupportsUnderscoreSeparator(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := newRootCmd()
+
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+	cmd.SetArgs([]string{"--underscore"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute root command: %v", err)
+	}
+
+	assertValidCodeWithSeparator(t, strings.TrimSpace(stdout.String()), 4, defaultLetters, defaultDigits, underscoreSeparator)
+}
+
 func TestRootCommandOutputsVersion(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd := newRootCmd()
@@ -204,11 +219,11 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 	}
 
 	helpText := stdout.String()
-	if !strings.Contains(helpText, "Hyphen-separated Code Generator") {
+	if !strings.Contains(helpText, "Code Generator") {
 		t.Fatalf("expected help to mention the tool name, got %q", helpText)
 	}
 
-	if !strings.Contains(helpText, "generates hyphen-separated codes with configurable") {
+	if !strings.Contains(helpText, "generates grouped codes with configurable") {
 		t.Fatalf("expected help to mention the updated summary, got %q", helpText)
 	}
 
@@ -238,6 +253,14 @@ func TestRootCommandHelpMentionsFlagConstraints(t *testing.T) {
 
 	if !strings.Contains(helpText, "--version") {
 		t.Fatalf("expected help to mention --version, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "--underscore") {
+		t.Fatalf("expected help to mention --underscore, got %q", helpText)
+	}
+
+	if !strings.Contains(helpText, "use _ instead of - as the group separator") {
+		t.Fatalf("expected help to mention underscore separator behavior, got %q", helpText)
 	}
 
 	if !strings.Contains(helpText, "Examples:") {

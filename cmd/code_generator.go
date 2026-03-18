@@ -10,14 +10,16 @@ import (
 )
 
 const (
-	defaultGroupSize = 4
-	defaultDigits    = "23456789"
-	defaultLetters   = "cuimngda"
-	lettersPerGroup  = 2
-	groupCount       = 4
-	maxDigits        = 10
-	minDigits        = 1
-	requiredLetters  = groupCount * lettersPerGroup
+	defaultGroupSize    = 4
+	defaultDigits       = "23456789"
+	defaultLetters      = "cuimngda"
+	defaultSeparator    = '-'
+	underscoreSeparator = '_'
+	lettersPerGroup     = 2
+	groupCount          = 4
+	maxDigits           = 10
+	minDigits           = 1
+	requiredLetters     = groupCount * lettersPerGroup
 )
 
 type CodeGenerator struct {
@@ -25,9 +27,10 @@ type CodeGenerator struct {
 	digits    []rune
 	groupSize int
 	letters   []rune
+	separator rune
 }
 
-func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string, digits string) (*CodeGenerator, error) {
+func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string, digits string, separator rune) (*CodeGenerator, error) {
 	if rng == nil {
 		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
@@ -51,6 +54,7 @@ func NewCodeGenerator(rng *rand.Rand, groupSize int, letters string, digits stri
 		digits:    normalizedDigits,
 		groupSize: groupSize,
 		letters:   normalizedLetters,
+		separator: separator,
 	}, nil
 }
 
@@ -83,7 +87,7 @@ func (g *CodeGenerator) Generate() string {
 		}
 
 		if groupIndex < groupCount-1 {
-			builder.WriteByte('-')
+			builder.WriteRune(g.separator)
 		}
 	}
 
